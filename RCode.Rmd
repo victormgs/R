@@ -1,0 +1,349 @@
+---
+title: "R Assignments"
+author: "Victor M. Guardado"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Assignment 1 (Exploratory)
+
+The data is related with direct marketing campaigns of a Portuguese banking institution `(file bank-additional.csv)`. The marketing campaigns were based on phone calls. Describe the customer age, marital status, education and the consumer price index (variable names: age, marital, education, cons.price.idx). 
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+data1 <- read.table("/Users/apple/Downloads/bank-additional.csv", header=TRUE, sep=";",dec=".")
+knitr::kable(head(data1))
+
+```
+
+
+**a** Create four appropriate plots, one for each type of data. **Test normality of age.** 
+
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+
+par(mfrow=c(1,1))
+hist(data1$age, breaks=30, main="Consumer Age", xlab="Age", col="lightskyblue2")
+```
+
+The customer???s age concentrates between the late twenties and fifties. Peaking on the late twenties and the thirties. 
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+barplot(table(data1$marital), main="Marital Status", col="lightskyblue2")
+```
+
+Being married is the most common marital status between customers. It more than doubles the second one, being single. 
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+barplot(table(data1$education), main="Education", cex.names = .8, col="lightskyblue2")
+```
+
+There is an upward tendency between the numbers of clients and their education. The bank???s customers group tends to increment as they have higher education. The group of customers  that has a professional course do not follow the trend. But may be explained due a professional course might be perceived as an alternative to an university???s degree. 
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+hist(data1$cons.price.idx, breaks=30, main="Consumer Price Index", xlab="Prices")
+```
+
+The consumer price index has a lot of variability. It can be reflected in the histogram as it has high points followed by low points. Besides it does not follow a pattern.  
+
+**Normality of Age**
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+library(moments)
+library(ISwR)
+skewness(juul$igf1, na.rm = T)   #Close to 0?
+kurtosis(juul$igf1, na.rm=T)  #Close to 3?
+```
+
+Skewness is 0.6047, so the distribution is skewed right (its right tail is longer).  
+Kurtosis is 2.9282 (close to the value of 3), so the distribution resembles a mesokurtic distribution. 
+
+**b)** Create a dataframe containing information about age and marital status only of clients younger than 40 years old (age < 40). Calculate the percentage of customers under 40 who are divorced.
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+sqrt(6/length(!is.na(data1$age)))*1.96 
+sqrt(24/length(!is.na(data1$age)))*1.96
+df <- subset(data1, data1$age < 40)
+table(df$marital)
+```
+
+The percentage of customers under 40 who are divorced is 6.3421%. As this subgroup does not represent a great percentage of the bank???s customers, future marketing campaigns does not have to take this subgroup as their main target. 
+
+**c)** Compare the distribution of age for people who own a house (housing = yes) and for people who do not (housing = no) by plotting the two boxplots within the same figure. Does age distribute differently between these groups? If so, how?
+```{r fig.width=6, fig.height=6, fig.align='center'}
+#Boxplot
+yes.housing <-subset(data1, data1$housing=="yes", "age")
+no.housing <-subset(data1, data1$housing=="no", "age")
+boxplot(yes.housing$age, no.housing$age, main="Housing", ylab="Age", xlab="House owners vs No house owners", col=c("lightskyblue2", "brown2"))
+```
+
+Between the ages of 20 and 70, the distribution, variance and mean of both groups are very similar. But above 70 years they begin to differentiate. There exists house owners that reach almost 90 years (atypical results appear further away from the high limit). While people that do not own a house do not reach than the early 80s (atypical results appear closer the high limit).  
+
+## Assignment 2 (Linear Regression and Hypothesis Tests)
+
+For this exercise we will analyze the sbp dataset (file sbp1.csv). This file contains the following data of 32 subjects: systolic blood pressure (sbp, in mmHg), body mass index (bmi = weight / height2, weight in kg, height in m), age (age, in years) and smoking status (smk).
+
+**a)** Test whether the relationship between blood pressure and body mass index differs between smokers and non-smokers. Make sure that non-smokers is the reference category. Use lm function. Interpret model fit and coefficients, inspect assumptions. Discuss how this **linear regression** is different/similar to a t-test.
+
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+data2 <- read.table("/Users/apple/Downloads/sbp1.csv", header = TRUE, sep=";", dec=",")
+knitr::kable(head(data2))
+oldvalues <- c("no", "yes")
+newvalues <- factor(c(0,1))
+data2$smkDummy <- newvalues[match(data2$smk, oldvalues)]
+summary(lm(sbp~smk+bmi, data=data2))
+fitmodel1 <- lm(sbp~smk+bmi, data=data2)
+
+```
+
+The findings of the OLS estimation of the regression model show that an individual???s bmi and smoking status has positive effect on their sbp. Moreover this effect is shown to be significant at the 1 and 5 percent critical level respectively. We can interpret this as individuals who smoke will have a higher sbp compared to individuals who do not, and conclude that smoking does indeed affect the relationship between bmi and sbp. Non the lease, the t values of the coefficients show that bmi has the strongest effect on an individual sbp. In terms of the fitness of the model, looking at the adjusted R square, we can see that the model has a very high explanatory power, explaining almost 62% of the variance of sbp. Additionally the F test shows that all coefficients are jointly and significantly different from zero.     
+
+
+**Assumptions**
+
+**-** No systematic tendencies
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+qqnorm(resid(fitmodel1), asp=1); qqline(resid(fitmodel1), col="red")
+```
+
+**-** Homoscedasticity and Linearity
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+plot(predict(fitmodel1), resid(fitmodel1), main = "Homoscedasticity and Linearity", ylab = "residuals", xlab="predicted", asp=1.5)
+```
+
+As shown in the figure above, the plot of the residuals again the predicted values of the model is centered around an horizontal line which indicates that the model complies with the assumption of linearity. Additionally there is no pattern between between the size of the predicted values and the residuals, which indicates that the model is not heteroscedastic. 
+
+**-** Independence of errors
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+plot(data2$bmi, resid(fitmodel1),  xlab = "bmi", main = "Independent errors (bmi)", ylab = "errors")
+```
+
+As the residuals of the model show no indication of a correlation or a clear pattern with the independent variable accounting for bmi, we can assume that there is no dependence of errors between the residuals and the bmi. 
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+plot(data2$smk, resid(fitmodel1),  xlab = "smoker", main = "Independent errors (smoking)", ylab = "errors", col="lightskyblue2")
+```
+
+Contrary to the case of bmi, it appears that the relation between the variable accounting for an individual???s smoking status and the residuals of the model has a different variance depending on the latter???s category. More specifically, the variance of the residuals in the model if relatively larger for individuals who smoke, compared to individuals who don???t. Given this, and taking into account the presence of outliers in the category of non-smokers, the assumption independence of errors is does not appear to meet when analysing the relation between the independent variable of smoking status and the residuals of the model. 
+
+
+Difference between linear regression and the t-test:
+
+While the linear regression can assess the relationship between any number of predictors and and a dependent variable, the t-test looks at differences between one explanatory variable within two previously defined categories. The t-test is useful when computing differences in terms of one variable between two groups, and the regression model can actually look at the strength and the significance that effect of one or several variables have on another variable. In other words, and taking as an example the regression model here, while the t-test can look at the difference in SBP or BMI between the category of smokers and non-smokers and its statistical significance, it cannot assess the effect that neither of them have when controlling for the other. 
+
+**b)** Repeat the analysis at point a. but use age as a predictor instead of body mass index.
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+fitmodel2 <- lm(sbp~smk+age, data=data2)
+summary(fitmodel2)
+```
+
+The findings of the OLS estimation of the regression model showed that the smoking status and age of an individual have a positive and significant (at the 1% level) effect on an individual???s sbp. Among the later, and based on the t value, age is found to be the strongest determinant of sbp within the model. These findings showed that increases in an individual???s age will be accompanied by increases in their sbp. For individuals who smoke their initial sbp will be larger by nearly 1.71 points. On the other hand the explanatory power of the model, as portrayed by the adjusted R-squared, is very high as the predictors are found to explain over 71% of the variance in sbp. Lastly, the joint F test shows that the coefficients of the model are jointly and significantly from zero.    
+
+
+**Assumptions**
+
+**-** Normality
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+qqnorm(resid(fitmodel2), asp=1); qqline(resid(fitmodel2), col="red")
+```
+
+Based on the figure depicted above we can conclude that the model meets the assumption of normality as all points are centered around the line depicted normality. 
+
+**-** Homoscedasticity and Linearity
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+plot(predict(fitmodel2), resid(fitmodel2), main = "Homoscedasticity and Linearity", ylab = "residuals", xlab="predicted", asp=1.5)
+```
+
+While the model shows no systematic correlation between the predicted values and the residuals, indicating no heteroscedasticity problem, the assumption of linearity does not appear to be meet as all points are relatively randomly scatter around the graph.  
+
+**-** Independence of errors
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+plot(data2$bmi, resid(fitmodel2),  xlab = "age", main = "Independent errors (age)", ylab = "errors")
+plot(data2$smk, resid(fitmodel2),  xlab = "smoker", main = "Independent errors (smoking)", ylab = "errors", col="lightskyblue2")
+```
+
+In terms of the assumption of independence of errors, while the model appears to comply with this assumption when it comes to the independent variable accounting for age, this is not the case for the categorical variable accounting for smoking status. 
+
+
+**c)** Make four scatterplots: two with blood pressure against BMI (smokers vs. non-smokers) and two scatterplots with blood pressure against age (smokers vs. non-smokers). Add the regression lines that you obtained at points a. and b.
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+subSmkBmi <- subset(data2, data2$smk=="yes")
+subNoSmkBmi <- subset(data2, data2$smk=="no")
+plot(subSmkBmi$bmi, subSmkBmi$sbp, ylab="sbp", xlab ="bmi", main = "sbp vs bmi (smokers)")
+abline((fitmodel1$coefficients[1]+fitmodel1$coefficients[2]), (fitmodel1$coefficients[3]), col="red",
+       lty="dashed")
+plot(subNoSmkBmi$bmi, subNoSmkBmi$sbp, ylab="sbp", xlab ="bmi", main ="sbp vs bmi (non-smokers)")
+abline((fitmodel1$coefficients[1]), (fitmodel1$coefficients[3]), col="red",
+       lty="dashed")
+```
+
+Shown in the two figures above is the fact that the relationship between bmi and sbp varies between smokers and non-smokers. In the case of smokers, the regression model depicted by the red dashed line shows that increases in bmi have a larger impact in sbp compared to non-smokers. 
+
+**d)** Combine all the predictors in a multiple regression. Use a step-wise regression approach. (Compare model fit, inspect assumptions and
+interpret the model parameters of the best-fitting model)
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+library(MASS)
+fitmodel2 <- lm(sbp~smk+bmi+age+smk:bmi, data=data2)
+step <- stepAIC(fitmodel2, direction="both")
+step$anova
+```
+
+Combining the predictors: age, bmi and smoking status in the regression model with the dependent variables as sbp, the step-wise regression approach shows that the best fitting model is that including bmi and smoking status as the predictors. The results of this regression are presented in question 1. We can interpret this findings as follows: 
+age does not appear to be a significant predictor of sbp relative to bmi and age. This conclusion is based on the adjusted R-square, F test, t values and AIC. 
+
+
+## Assignment 3 (Logistic Regression and Hypothesis Tests)
+
+In the file mi.csv we have data of a patient-control study regarding the relationship between mi (myocardial infarction) and many predictors. 
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+
+dataMi <- read.table("/Users/apple/Downloads/mi.csv", header=TRUE, sep=";",dec=".")
+knitr::kable(head(dataMi))
+dataScul <- read.table("/Users/apple/Downloads/sculptures.csv", header=TRUE, sep=";",dec=".")
+knitr::kable(head(dataScul))
+dataVer <- read.table("/Users/apple/Downloads/veritatis.csv", header=TRUE, sep=";", dec=".")
+knitr::kable(head(dataVer))
+```
+
+**a)** Investigate the association between smoking (variable smoking, 1 = yes, 0 = no) and the event of an infarction using a chi-square test. First display the data on a 2x2 table and then perform the test.
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+subG <- subset(dataMi, mi>=0, c(1,2))
+table <- table(Infarction=subG$mi, Smoking=subG$smoking)
+table
+chisq1<-chisq.test(table)
+chisq1
+```
+
+As the p-value 0.001446 is smaller than the .05 significance level, we reject the null hypothesis that the smoking habit is independent of the occurrence of myocardial infarctions. We can conclude that there is a relation between smoking and the occurrence of a myocardial infarction. 
+
+**b)** Using a logistic regression model, estimate the Odds ratio for NOT having an infarction for smokers compared to non-smokers (if necessary, recode the variables). 
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+summary(glm(mi~smoking, data=subG, family=binomial))
+1/exp(0.7998)
+```
+
+Result. The Odds ratio for NOT having an infarction for smokers compared to non-smokers is 0.4494188. Therefore we can conclude that smokers have a higher probability of having an infarction than non-smokers do. 
+
+
+**c)**  Investigate the association between the continuous variable BMI (body mass index) and the event of an infarction using a logistic regression model. Is the relationship between BMI and MI significant? 
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+summary1 <- summary(glm(mi~bmi, data=dataMi, family=binomial)) 
+summary1
+```
+
+As the p-value of the bmi variable are higher than 0.05, it is statistically insignificant in the logistic regression model. We can conclude that the bmi variable does not significantly affect the probability of having an infarction. 
+
+
+What is the value of the regression coefficient and odds ratio for BMI? What is the interpretation of this odds ratio? What is the odds ratio for MI for persons with a BMI of 25 compared to persons with a BMI of 23?
+The regression coefficient for BMI is 0.01364. As in the table above, exp(0.01364) is 1.013. Therefore its interpretation is that 1 point increase in BMI leads to a 1.3085% increase in the odds to having an  infarction. 
+A person with a BMI of 25 has .2417% higher probability than one with a BMI of 23. 
+
+
+# Assignment 4 (Classifiers)
+
+In the file sculptures.csv information over 100 sculptures is collected (height in meters and weight, in hundreds of kilograms and sculptor = Bernini or Other). You want to build a classifier that tells between statues made by Bernini (that constitute around the 25% of the total number of statues to classify) and statues made by other artists.
+
+**a)**  Build two classifiers (C1 and C2), assuming respectively equality and inequality of the covariance matrices in the two populations (Bernini sculptures and non-Bernini sculptures).
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+  library(MASS)
+  c1 <- lda(sculptor~height+weight, data=dataScul)
+  #quadratic
+  c2 <- qda(sculptor~height+weight, data=dataScul, prior=c(.25, .75))
+```
+  
+The first classifier (c1) assumes equality, while the second classifier (c2) assumes inequality. 
+  
+**b)** Calculate the APER of the two classifiers, comment the results.
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+#classifier 1
+  predict(c1)$class
+  table1 <- table(true = dataScul$sculptor, predicted =predict(c1)$class)
+  knitr::kable(table1)
+# APER = incorrect classifications / total observations
+  (18+11)/(100)
+#classifier 2
+  predict(c2)$class
+  table2 <-table(true= dataScul$sculptor, predicted = predict(c2)$class)
+  knitr::kable(table2)
+# APER = incorrect classifications / total observations  
+  (18+5)/100
+```
+
+APER for classifier #1: 0.29
+APER for classifier #2: 0.23
+We can conclude that classifier #2 (c2) is better than classifier 1(c1). The second classifier had a lower incorrect classification ratio (APER) the the first one. 
+
+  
+**c)** A new statue is donated to the museum, and it is 2 meters tall and weighs 4 hundreds kilograms. How will the two classifiers classify the new sculpture?
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+  new.data <- cbind(2,4)
+  colnames(new.data) <- c("height", "weight")
+  new.data <- as.data.frame(new.data)
+  predict(c1, newdata=new.data)
+  predict(c2, newdata = new.data)
+```
+
+Classifier #1 will classify the new statue,with a 57.06% probability, as the work of Bernini. 
+Classifier #2 will classify the new statue,with a 61.63% probability, as the work of Bernini. 
+
+
+# Assignment 5 (Clusters)
+
+The veritatis diagram is a mysterious book attributed to Galileo. A famous historian thinks that in some pages of the diagram a secret code is hidden. According to the historian, the pages that contain traces of this code are characterized by an anomalous frequency of certain letters of the alphabet. 
+In the file veritatis.csv the frequencies of each vowel of the Latin alphabet (A,E,I,O,U) are collected for all the 132 pages of the book.
+
+**a)** ) Identify two clusters of pages, using a hierarchical clustering method (Manhattan distance, average linkage). 
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+dist1 <- dist(dataVer, method ="manhattan")  
+cluster1 <- hclust(dist1, method="average")
+ names(cluster1)
+```
+
+One of the clusters has 125 pages and the other one has 7 pages. We can conclude that the cluster with 7 pages is the one that contains the mysterious pages. 
+
+**b)** Plot the dendrogram of the method, how many suspicious pages did the method identify? At what distance did you cut the dendrogram in order to select two groups?
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+ plot(cluster1, h=-0.1, labels=FALSE, xlab = "Books", col.main="brown3", ann=FALSE)
+  title(xlab = "Books", main="Cluster Dendrogram", col.main="brown3", ylab="Height")
+ groups<-  cutree(cluster1, h=37)
+```
+ 
+One of the clusters has 125 pages and the other one has 7 pages. The distance to cut the dendrogram in order to select two groups is 37. 
+
+**c)** Report the average frequency per each vowel, for the two groups that you just clustered.
+
+```{r fig.width=6, fig.height=6, fig.align='center'}
+subset.1 <- subset(dataVer, groups==1)
+subset.2 <- subset(dataVer, groups==2)
+colMeans(subset.1)
+colMeans(subset.2)
+```
+
+The second cluster, that contains the books with mysterious pages, tend to report a higher average frequency per vowel for the letters: A and O. We can conclude that the vowels A and O are the ones that could have more weight in classifying the mysterious pages. 
+
+
